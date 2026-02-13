@@ -6,3 +6,6 @@ numpy
 scikit-learn
 scipy
 python-multipart
+dask[dataframe]
+openpyxl
+pyarrow

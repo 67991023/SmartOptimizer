@@ -6,68 +6,7 @@
     <title>SmartData Optimizer | AI-Powered Data Pipeline</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --bg-body: #F9FAFB;
-            --bg-card: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
-            --success: #10B981;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --radius: 12px;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; }
-
-        /* Layout */
-        .navbar { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .logo { font-weight: 700; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-        
-        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-
-        /* Workflow Stepper */
-        .workflow-grid { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; }
-        
-        /* Cards */
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .card-title { font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; font-size: 1rem; }
-
-        /* Upload Area */
-        .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .upload-zone:hover { border-color: var(--primary); background: #F5F3FF; }
-        .upload-zone i { font-size: 2rem; color: var(--text-muted); margin-bottom: 1rem; }
-
-        /* Buttons */
-        .btn { border: none; border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
-        .btn-outline:hover { background: #f3f4f6; }
-        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Analysis Report Styles */
-        .report-item { padding: 0.75rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
-        .badge-warning { background: #FEF3C7; color: #92400E; }
-        .badge-danger { background: #FEE2E2; color: #991B1B; }
-
-        /* Table Preview */
-        .table-container { overflow-x: auto; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { background: #F9FAFB; padding: 10px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-muted); }
-        td { padding: 10px; border-bottom: 1px solid var(--border); }
-
-        /* Console/Logs */
-        #console { background: #111827; color: #10B981; padding: 1rem; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.8rem; height: 150px; overflow-y: auto; margin-top: 1rem; }
-
-        .hidden { display: none; }
-    </style>
+    <link href="styles.css" rel="stylesheet">
 </head>
 <body>
 
@@ -83,10 +22,10 @@
         <aside>
             <div class="card">
                 <div class="card-title"><i class="fas fa-cloud-upload-alt"></i> 1. Import Data</div>
-                <input type="file" id="fileInput" class="hidden" accept=".csv,.json">
+                <input type="file" id="fileInput" class="hidden" accept=".csv,.json,.xml,.db,.sqlite,.sqlite3,.sql,.xlsx,.xls,.parquet">
                 <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-file-csv"></i>
-                    <p id="file-name">Click to upload CSV or JSON</p>
+                    <i class="fas fa-file-import"></i>
+                    <p id="file-name">CSV, JSON, XML, SQLite, Excel, Parquet</p>
                 </div>
                 <button class="btn btn-primary" onclick="uploadFile()" style="width: 100%; margin-top: 1rem;">
                     Upload & Initialize
@@ -155,7 +94,7 @@
 </div>
 
 <script>
-    const API_BASE = "http://localhost:8000";
+    const API_BASE = "";  // Same origin - served from FastAPI
     let currentSessionId = "";
 
     // Logging helper
@@ -179,6 +118,17 @@
             const response = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
             const data = await response.json();
             
+            // Check for server error
+            if (!response.ok || data.detail) {
+                log(`Error: ${data.detail || 'Upload failed'}`);
+                return;
+            }
+            
+            if (!data.session_id) {
+                log("Error: No session ID returned from server");
+                return;
+            }
+            
             currentSessionId = data.session_id;
             document.getElementById('session-badge').classList.remove('hidden');
             document.getElementById('session-id-display').innerText = `ID: ${currentSessionId.substring(0,8)}...`;
@@ -187,7 +137,23 @@
             document.getElementById('btn-scan').disabled = false;
             document.getElementById('btn-train').disabled = false;
             
-            updateUI(data.preview);
+            updateUI(data.preview || []);
+            
+            // Show stats
+            if (data.stats) {
+                const s = data.stats;
+                if (s.using_dask) {
+                    log(`🚀 DASK MODE: ${s.original_rows?.toLocaleString()} rows | Out-of-core processing enabled`);
+                } else {
+                    log(`Loaded ${s.original_rows?.toLocaleString() || '?'} rows | Memory: ${s.memory_mb}MB (saved ${s.memory_saved_pct}%)`);
+                }
+            }
+            
+            // Show info for large files
+            if (data.info) {
+                log(`ℹ️ ${data.info}`);
+            }
+            
             log("Upload successful. Session started.");
         } catch (e) {
             log("Error: " + e.message);
@@ -214,9 +180,17 @@
             const response = await fetch(`${API_BASE}/auto-clean/${currentSessionId}`, { method: 'POST' });
             const data = await response.json();
             
-            updateUI(data.preview);
+            // Check for server error
+            if (!response.ok || data.detail) {
+                log(`Cleaning failed: ${data.detail || 'Unknown error'}`);
+                return;
+            }
+            
+            if (data.preview) {
+                updateUI(data.preview);
+            }
             document.getElementById('btn-undo').disabled = false;
-            log("Data cleaned & transformed successfully.");
+            log(`Data cleaned & transformed. ${data.columns?.length || 0} columns.`);
         } catch (e) { log("Cleaning failed: " + e.message); }
     }
 
