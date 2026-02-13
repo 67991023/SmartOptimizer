@@ -13,6 +13,7 @@ from scipy import stats
 import io
 import copy
 import uuid
+from fastapi.middleware.cors import CORSMiddleware
 
 # ==============================================================================
 # 🧠 PART 1: LOGIC LAYER (CORE CLASSES)
@@ -270,7 +271,13 @@ sessions: Dict[str, SessionState] = {}
 # ==============================================================================
 
 app = FastAPI(title="Smart Data Optimizer API")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 class TrainRequest(BaseModel):
     session_id: str
     target_column: str
