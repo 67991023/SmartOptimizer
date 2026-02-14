@@ -1,140 +1,64 @@
-# Feature Encoder - Handles encoding and scaling
-
 from .utils import is_dask_dataframe as _is_dask
+from .config import MAX_LABEL_CARDINALITY, LARGE_DF_THRESHOLD
+import numpy as np
 
 class FeatureEncoder:
     def transform(self, df, report: dict):
         is_dask = _is_dask(df)
-        
+        recs = report.get("recommendations", {})
+        large = (not is_dask) and len(df) > LARGE_DF_THRESHOLD
+
+        label_cols, onehot_cols = [], []
+        for key, method in recs.items():
+            if not key.startswith("encode_"): continue
+            col = key.replace("encode_", "")
+            if col not in df.columns: continue
+            if method == "onehot" and not large: onehot_cols.append(col)
+            else: label_cols.append(col)
+
         if is_dask:
-            return self._transform_dask(df, report)
+            all_enc = onehot_cols + label_cols
+            if all_enc:
+                df = df.drop(columns=[c for c in all_enc if c in df.columns], errors='ignore')
         else:
-            return self._transform_pandas(df, report)
-    
-    def _transform_pandas(self, df, report: dict):
-        """Transform pandas DataFrame"""
-        import numpy as np
-        import pandas as pd
-        from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, LabelEncoder
-        
-        df_encoded = df.copy()
-        recs = report.get("recommendations", {})
+            import pandas as pd
+            if onehot_cols: df = pd.get_dummies(df, columns=onehot_cols, drop_first=True)
+            if large:
+                drop = [c for c in label_cols
+                        if (len(df[c].cat.categories) if hasattr(df[c], 'cat')
+                            else df[c].nunique()) > MAX_LABEL_CARDINALITY]
+                if drop:
+                    df = df.drop(columns=drop)
+                    label_cols = [c for c in label_cols if c not in drop]
+            for col in label_cols:
+                df[col] = df[col].cat.codes if hasattr(df[col], 'cat') else pd.factorize(df[col])[0]
 
-        # 1. Encoding
-        for key, method in recs.items():
-            if key.startswith("encode_"):
-                col = key.replace("encode_", "")
-                if col not in df_encoded.columns:
-                    continue
+        scale_cols = [k.replace("scale_", "") for k in recs if k.startswith("scale_")]
+        scale_cols = [c for c in scale_cols if c in df.columns]
 
-                if method == "onehot":
-                    df_encoded = pd.get_dummies(df_encoded, columns=[col], drop_first=True)
-                elif method == "label":
-                    le = LabelEncoder()
-                    df_encoded[col] = le.fit_transform(df_encoded[col].astype(str))
-
-        # 2. Scaling
-        numeric_cols = df_encoded.select_dtypes(include=[np.number]).columns
-        for col in numeric_cols:
-            rec_key = f"scale_{col}"
-            method = recs.get(rec_key, "standard")
-
-            scaler = None
-            if method == "robust":
-                scaler = RobustScaler()
-            elif method == "minmax":
-                scaler = MinMaxScaler()
-            else:
-                scaler = StandardScaler()
-            
-            if scaler:
-                data = df_encoded[col].values.reshape(-1, 1)
-                df_encoded[col] = scaler.fit_transform(data)
-
-        return df_encoded
-    
-    def _transform_dask(self, df, report: dict):
-        import numpy as np
-        import dask.dataframe as dd
-        
-        recs = report.get("recommendations", {})
-        
-        # Get actual current columns (convert to set for fast lookup)
-        current_cols = set(df.columns)
-        
-        # Collect columns to encode
-        cols_to_encode = []
-        for key, method in recs.items():
-            if key.startswith("encode_"):
-                col = key.replace("encode_", "")
-                if col in current_cols:
-                    cols_to_encode.append(col)
-        
-        # Batch categorize all columns at once (much faster)
-        if cols_to_encode:
-            try:
-                # Convert to string first, then categorize all at once
-                for col in cols_to_encode:
-                    df[col] = df[col].astype(str)
-                
-                df = df.categorize(columns=cols_to_encode)
-                
-                # Now convert to codes
-                for col in cols_to_encode:
-                    df[col] = df[col].cat.codes
-            except Exception as e:
-                print(f"Warning: Could not encode columns: {e}")
-                # Fall back to dropping these columns
-                for col in cols_to_encode:
-                    if col in df.columns:
-                        try:
-                            df = df.drop(columns=[col])
-                        except:
-                            pass
-        
-        # 2. Scaling - sample-based for speed
-        # Get numeric columns from actual current schema
-        try:
-            sample = df.head(10000)
-            if hasattr(sample, 'compute'):
-                sample = sample.compute()
-            numeric_cols = list(sample.select_dtypes(include=[np.number]).columns)
-        except:
-            numeric_cols = []
-        
-        # Compute stats from sample, apply lazily
-        for col in numeric_cols:
-            if col not in current_cols:
-                continue
-                
-            rec_key = f"scale_{col}"
-            method = recs.get(rec_key, "standard")
-            
-            try:
-                col_sample = sample[col].dropna()
-                if len(col_sample) == 0:
-                    continue
-                    
+        if not is_dask and scale_cols:
+            for col in scale_cols:
+                method = recs.get(f"scale_{col}", "standard")
+                arr = df[col].to_numpy(dtype='float64')
                 if method == "robust":
-                    median = col_sample.median()
-                    q1 = col_sample.quantile(0.25)
-                    q3 = col_sample.quantile(0.75)
-                    iqr = q3 - q1
-                    if iqr != 0:
-                        df[col] = (df[col] - median) / iqr
+                    center, scale = np.nanmedian(arr), np.nanpercentile(arr, 75) - np.nanpercentile(arr, 25)
                 elif method == "minmax":
-                    min_val = col_sample.min()
-                    max_val = col_sample.max()
-                    range_val = max_val - min_val
-                    if range_val != 0:
-                        df[col] = (df[col] - min_val) / range_val
+                    center, scale = np.nanmin(arr), np.nanmax(arr) - np.nanmin(arr)
                 else:
-                    mean = col_sample.mean()
-                    std = col_sample.std()
-                    if std != 0:
-                        df[col] = (df[col] - mean) / std
-            except Exception as e:
-                print(f"Warning: Could not scale column {col}: {e}")
-                continue
-        
+                    center, scale = np.nanmean(arr), np.nanstd(arr)
+                if scale != 0: df[col] = (arr - center) / scale
+        elif is_dask and scale_cols:
+            sample = df.head(10000)
+            if hasattr(sample, 'compute'): sample = sample.compute()
+            for col in scale_cols:
+                method = recs.get(f"scale_{col}", "standard")
+                data = sample[col].dropna()
+                if data.empty: continue
+                try:
+                    if method == "robust": center, scale = data.median(), data.quantile(0.75) - data.quantile(0.25)
+                    elif method == "minmax": center, scale = data.min(), data.max() - data.min()
+                    else: center, scale = data.mean(), data.std()
+                    if scale != 0: df[col] = (df[col] - center) / scale
+                except: continue
+
         return df

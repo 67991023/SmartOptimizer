@@ -96,6 +96,7 @@
 <script>
     const API_BASE = "";  // Same origin - served from FastAPI
     let currentSessionId = "";
+    let pendingUpdate = null;  // Stores pending UI update if tab was hidden
 
     // Logging helper
     function log(message, type = 'info') {
@@ -104,6 +105,32 @@
         consoleEl.innerHTML += `<div><span style="color: #6B7280">[${time}]</span> ${message}</div>`;
         consoleEl.scrollTop = consoleEl.scrollHeight;
     }
+
+    // Loading state helpers
+    function setLoading(btnId, loading) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        if (loading) {
+            btn.disabled = true;
+            btn._origHTML = btn.innerHTML;
+            const label = btn.textContent.trim();
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${label}...`;
+        } else {
+            btn.disabled = false;
+            if (btn._origHTML) btn.innerHTML = btn._origHTML;
+        }
+    }
+
+    // Flush pending UI updates when user tabs back
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && pendingUpdate) {
+            const { preview, logMsg, btnId } = pendingUpdate;
+            if (preview) updateUI(preview);
+            if (logMsg) log(logMsg);
+            if (btnId) setLoading(btnId, false);
+            pendingUpdate = null;
+        }
+    });
 
     // 1. Upload File
     async function uploadFile() {
@@ -115,6 +142,7 @@
 
         try {
             log("Uploading dataset...");
+            setLoading('btn-scan', true);
             const response = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
             const data = await response.json();
             
@@ -157,6 +185,8 @@
             log("Upload successful. Session started.");
         } catch (e) {
             log("Error: " + e.message);
+        } finally {
+            setLoading('btn-scan', false);
         }
     }
 
@@ -164,6 +194,7 @@
     async function scanData() {
         try {
             log("Scanning for anomalies...");
+            setLoading('btn-scan', true);
             const response = await fetch(`${API_BASE}/scan/${currentSessionId}`);
             const report = await response.json();
             
@@ -171,12 +202,14 @@
             document.getElementById('btn-clean').disabled = false;
             log("Health scan complete.");
         } catch (e) { log("Scan failed: " + e.message); }
+        finally { setLoading('btn-scan', false); }
     }
 
     // 3. Auto Clean
     async function autoClean() {
         try {
             log("Running optimization pipeline...");
+            setLoading('btn-clean', true);
             const response = await fetch(`${API_BASE}/auto-clean/${currentSessionId}`, { method: 'POST' });
             const data = await response.json();
             
@@ -186,12 +219,16 @@
                 return;
             }
             
-            if (data.preview) {
-                updateUI(data.preview);
+            const msg = `Data cleaned & transformed. ${data.columns?.length || 0} columns.`;
+            if (document.hidden) {
+                pendingUpdate = { preview: data.preview, logMsg: msg, btnId: 'btn-clean' };
+            } else {
+                if (data.preview) updateUI(data.preview);
+                log(msg);
             }
             document.getElementById('btn-undo').disabled = false;
-            log(`Data cleaned & transformed. ${data.columns?.length || 0} columns.`);
         } catch (e) { log("Cleaning failed: " + e.message); }
+        finally { if (!pendingUpdate) setLoading('btn-clean', false); }
     }
 
     // 4. Undo
@@ -213,6 +250,7 @@
 
         try {
             log(`Training ${modelType} on target: ${target}...`);
+            setLoading('btn-train', true);
             const response = await fetch(`${API_BASE}/train`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -230,6 +268,7 @@
                 log("Error: " + result.error);
             }
         } catch (e) { log("Training failed: " + e.message); }
+        finally { setLoading('btn-train', false); }
     }
 
     // UI Helpers

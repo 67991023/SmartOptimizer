@@ -1,120 +1,60 @@
-# Data Scanner
-
 from .utils import is_dask_dataframe as _is_dask
-from .config import DASK_SAMPLE_SIZE
-
+from .config import DASK_SAMPLE_SIZE, CORRELATION_THRESHOLD
+import numpy as np
 
 class AdvancedDataScanner:
     def analyze(self, df) -> dict:
-        import numpy as np
-        
         is_dask = _is_dask(df)
-        
-        # For Dask: sample once and analyze the sample (FAST)
         if is_dask:
-            # Get estimated row count from partitions (don't compute len())
-            estimated_rows = df.npartitions * 100000  # rough estimate
-            
-            # Sample to pandas for fast analysis
-            sample_df = df.head(DASK_SAMPLE_SIZE)
-            if hasattr(sample_df, 'compute'):
-                sample_df = sample_df.compute()
-            
-            return self._analyze_pandas(sample_df, estimated_rows, is_dask=True)
+            sample = df.head(DASK_SAMPLE_SIZE)
+            if hasattr(sample, 'compute'): sample = sample.compute()
+            row_count = df.npartitions * 100000
         else:
-            return self._analyze_pandas(df, len(df), is_dask=False)
-    
-    def _analyze_pandas(self, df, row_count: int, is_dask: bool) -> dict:
-        """Core analysis on pandas DataFrame"""
-        import numpy as np
-        
-        report = {
-            "rows": row_count,
-            "columns": len(df.columns),
-            "missing_analysis": {},
-            "outlier_analysis": {},
-            "correlation_alert": [],
-            "recommendations": {},
-            "using_dask": is_dask,
-            "sampled": is_dask  # Indicate if results are from sample
-        }
+            row_count = len(df)
+            sample = df.sample(n=min(DASK_SAMPLE_SIZE, row_count), random_state=42) if row_count > DASK_SAMPLE_SIZE else df
 
-        # Check Duplicates
-        dup_count = df.duplicated().sum()
-        if dup_count > 0:
-            report["recommendations"]["drop_duplicates"] = int(dup_count)
+        num_cols = list(sample.select_dtypes(include=[np.number]).columns)
+        report = {"rows": row_count, "columns": len(sample.columns), "using_dask": is_dask,
+                  "missing_analysis": {}, "outlier_analysis": {}, "correlation_alert": [],
+                  "recommendations": {}, "sampled": row_count > DASK_SAMPLE_SIZE}
 
-        # Get numeric columns
-        numeric_cols = list(df.select_dtypes(include=[np.number]).columns)
-        
-        for col in df.columns:
-            # --- A. Missing Value Analysis ---
-            missing_pct = df[col].isnull().mean()
-            
-            if missing_pct > 0:
-                report["missing_analysis"][col] = round(float(missing_pct) * 100, 2)
-                
-                if col in numeric_cols:
-                    skew = df[col].skew()
-                    if abs(skew) > 1.0:
-                        report["recommendations"][f"impute_{col}"] = "median"
-                    else:
-                        report["recommendations"][f"impute_{col}"] = "mean"
+        dups = sample.duplicated().sum()
+        if dups > 0: report["recommendations"]["drop_duplicates"] = int(dups)
+
+        for col in sample.columns:
+            miss = sample[col].isnull().mean()
+            if miss > 0:
+                report["missing_analysis"][col] = round(float(miss) * 100, 2)
+                if col in num_cols:
+                    report["recommendations"][f"impute_{col}"] = "median" if abs(sample[col].skew()) > 1.0 else "mean"
                 else:
                     report["recommendations"][f"impute_{col}"] = "mode"
 
-            # --- B. Outlier Analysis (IQR Method) ---
-            if col in numeric_cols:
-                Q1 = df[col].quantile(0.25)
-                Q3 = df[col].quantile(0.75)
+            if col in num_cols:
+                Q1, Q3 = sample[col].quantile(0.25), sample[col].quantile(0.75)
                 IQR = Q3 - Q1
-                lower = Q1 - 1.5 * IQR
-                upper = Q3 + 1.5 * IQR
-                
-                outliers = df[(df[col] < lower) | (df[col] > upper)]
-                outlier_count = len(outliers)
-                
-                if outlier_count > 0:
-                    report["outlier_analysis"][col] = {
-                        "count": int(outlier_count),
-                        "method": "IQR",
-                        "bounds": [float(lower), float(upper)]
-                    }
+                lo, hi = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
+                outliers = int(((sample[col] < lo) | (sample[col] > hi)).sum())
+                if outliers > 0:
+                    report["outlier_analysis"][col] = {"count": outliers, "method": "IQR", "bounds": [float(lo), float(hi)]}
                     report["recommendations"][f"scale_{col}"] = "robust"
                 else:
                     report["recommendations"][f"scale_{col}"] = "standard"
+            else:
+                u = sample[col].nunique()
+                report["recommendations"][f"encode_{col}"] = "onehot" if u <= 10 else "label"
 
-            # --- C. Cardinality (Encoding) ---
-            if col not in numeric_cols:
-                unique_count = df[col].nunique()
-                
-                if unique_count <= 10:
-                    report["recommendations"][f"encode_{col}"] = "onehot"
-                else:
-                    report["recommendations"][f"encode_{col}"] = "label"
-
-        # Correlation Check - Find columns that move together (multicollinearity)
-        # Correlation > 0.95 means ~95% of variance is shared - redundant for ML
-        if len(numeric_cols) > 1:
-            corr_matrix = df[numeric_cols].corr().abs()
-            upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
-            
-            # Store which columns correlate with what and how much
-            corr_details = []
-            to_drop = []
-            for column in upper.columns:
-                for idx, val in upper[column].items():
-                    if val > 0.95:
-                        corr_details.append({
-                            "col1": idx,
-                            "col2": column,
-                            "correlation": round(float(val), 4)
-                        })
-                        if column not in to_drop:
-                            to_drop.append(column)
-            
+        if len(num_cols) > 1:
+            corr = sample[num_cols].corr().abs()
+            upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool))
+            details, to_drop = [], []
+            for c in upper.columns:
+                for idx, val in upper[c].items():
+                    if val > CORRELATION_THRESHOLD:
+                        details.append({"col1": idx, "col2": c, "correlation": round(float(val), 4)})
+                        if c not in to_drop: to_drop.append(c)
             if to_drop:
                 report["correlation_alert"] = to_drop
-                report["correlation_details"] = corr_details
+                report["correlation_details"] = details
 
         return report

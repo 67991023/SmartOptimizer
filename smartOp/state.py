@@ -1,37 +1,23 @@
-# State management for sessions - lightweight module
-
-from typing import Dict, Any, Optional
+from typing import Dict
 from .utils import is_dask_dataframe as _is_dask
 
 class SessionState:
     def __init__(self):
-        self.history = [] 
-        self.current_step = -1
-        self.latest_report = {}
-        self.trained_model = None
-        self.is_dask = False  # Track if using dask
+        self.history, self.current_step = [], -1
+        self.latest_report, self.trained_model, self.is_dask = {}, None, False
 
     def push(self, df, report=None):
-        self.history = self.history[:self.current_step + 1]
-        # For dask, don't copy (it's lazy anyway)
-        if _is_dask(df):
-            self.history.append(df)
-        else:
-            self.history.append(df.copy())
-        self.current_step += 1
-        if report:
-            self.latest_report = report
+        import gc
+        # Replace entire history — only keep the latest state
+        self.history = [df]
+        self.current_step = 0
+        if report: self.latest_report = report
+        gc.collect()
 
     def get_current(self):
-        if self.current_step >= 0:
-            return self.history[self.current_step]
-        return None
+        return self.history[self.current_step] if self.current_step >= 0 else None
 
     def undo(self):
-        if self.current_step > 0:
-            self.current_step -= 1
-            return self.history[self.current_step]
-        return None
+        return None  # undo disabled — only 1 state kept to save memory
 
-# Global sessions store
 sessions: Dict[str, SessionState] = {}
