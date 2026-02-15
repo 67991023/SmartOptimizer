@@ -1,303 +1,374 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartData Optimizer | AI-Powered Data Pipeline</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --bg-body: #F9FAFB;
-            --bg-card: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
-            --success: #10B981;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --radius: 12px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartData Optimizer | AI-Powered Data Pipeline</title>
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; }
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-        /* Layout */
-        .navbar { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .logo { font-weight: 700; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-        
-        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+<style>
+:root{
+--primary:#4F46E5;
+--primary-hover:#4338CA;
+--bg-body:#F9FAFB;
+--bg-card:#FFFFFF;
+--text-main:#111827;
+--text-muted:#6B7280;
+--border:#E5E7EB;
+--radius:12px;
+}
 
-        /* Workflow Stepper */
-        .workflow-grid { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; }
-        
-        /* Cards */
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .card-title { font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; font-size: 1rem; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg-body);color:var(--text-main)}
 
-        /* Upload Area */
-        .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .upload-zone:hover { border-color: var(--primary); background: #F5F3FF; }
-        .upload-zone i { font-size: 2rem; color: var(--text-muted); margin-bottom: 1rem; }
+.navbar{
+background:var(--bg-card);
+border-bottom:1px solid var(--border);
+padding:1rem 2rem;
+display:flex;
+justify-content:space-between;
+align-items:center;
+position:sticky;
+top:0;
+}
 
-        /* Buttons */
-        .btn { border: none; border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
-        .btn-outline:hover { background: #f3f4f6; }
-        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.logo{font-weight:700;font-size:1.25rem;color:var(--primary)}
 
-        /* Analysis Report Styles */
-        .report-item { padding: 0.75rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
-        .badge-warning { background: #FEF3C7; color: #92400E; }
-        .badge-danger { background: #FEE2E2; color: #991B1B; }
+.container{max-width:1100px;margin:2rem auto;padding:0 1rem}
 
-        /* Table Preview */
-        .table-container { overflow-x: auto; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { background: #F9FAFB; padding: 10px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-muted); }
-        td { padding: 10px; border-bottom: 1px solid var(--border); }
+.workflow-grid{display:grid;grid-template-columns:350px 1fr;gap:2rem}
 
-        /* Console/Logs */
-        #console { background: #111827; color: #10B981; padding: 1rem; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.8rem; height: 150px; overflow-y: auto; margin-top: 1rem; }
+.card{
+background:var(--bg-card);
+border:1px solid var(--border);
+border-radius:var(--radius);
+padding:1.5rem;
+margin-bottom:1.5rem;
+box-shadow:0 1px 3px rgba(0,0,0,0.1);
+}
 
-        .hidden { display: none; }
-    </style>
+.card-title{
+font-weight:600;
+margin-bottom:1rem;
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.upload-zone{
+border:2px dashed var(--border);
+border-radius:var(--radius);
+padding:2rem;
+text-align:center;
+cursor:pointer;
+}
+
+.upload-zone:hover{
+border-color:var(--primary);
+background:#F5F3FF;
+}
+
+.btn{
+border:none;
+border-radius:8px;
+padding:.6rem 1.2rem;
+font-weight:500;
+cursor:pointer;
+display:inline-flex;
+align-items:center;
+gap:8px;
+font-size:.9rem;
+}
+
+.btn-primary{background:var(--primary);color:white}
+.btn-primary:hover{background:var(--primary-hover)}
+
+.btn-outline{
+background:transparent;
+border:1px solid var(--border);
+}
+
+.btn-outline:hover{background:#f3f4f6}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.table-container{
+overflow-x:auto;
+margin-top:1rem;
+border-radius:8px;
+border:1px solid var(--border);
+}
+
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{background:#F9FAFB;padding:10px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border)}
+
+#console{
+background:#111827;
+color:#10B981;
+padding:1rem;
+border-radius:8px;
+font-family:monospace;
+font-size:.8rem;
+height:150px;
+overflow-y:auto;
+margin-top:1rem;
+}
+
+.hidden{display:none}
+</style>
 </head>
 <body>
 
 <nav class="navbar">
-    <div class="logo"><i class="fas fa-microchip"></i> SmartData Optimizer</div>
-    <div id="session-badge" class="hidden">
-        <span class="badge badge-warning" id="session-id-display">Session: None</span>
-    </div>
+<div class="logo"><i class="fas fa-microchip"></i> SmartData Optimizer</div>
+<div id="session-badge" class="hidden">
+<span id="session-id-display">Session</span>
+</div>
 </nav>
 
 <div class="container">
-    <div class="workflow-grid">
-        <aside>
-            <div class="card">
-                <div class="card-title"><i class="fas fa-cloud-upload-alt"></i> 1. Import Data</div>
-                <input type="file" id="fileInput" class="hidden" accept=".csv,.json">
-                <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-file-csv"></i>
-                    <p id="file-name">Click to upload CSV or JSON</p>
-                </div>
-                <button class="btn btn-primary" onclick="uploadFile()" style="width: 100%; margin-top: 1rem;">
-                    Upload & Initialize
-                </button>
-            </div>
+<div class="workflow-grid">
 
-            <div class="card">
-                <div class="card-title"><i class="fas fa-magic"></i> 2. Actions</div>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button id="btn-scan" class="btn btn-outline" onclick="scanData()" disabled>
-                        <i class="fas fa-search"></i> Run Health Scan
-                    </button>
-                    <button id="btn-clean" class="btn btn-outline" onclick="autoClean()" disabled>
-                        <i class="fas fa-broom"></i> Auto-Optimize Data
-                    </button>
-                    <button id="btn-undo" class="btn btn-outline" onclick="undoAction()" disabled>
-                        <i class="fas fa-undo"></i> Undo Last Step
-                    </button>
-                </div>
-            </div>
+<!-- LEFT -->
+<aside>
 
-            <div class="card">
-                <div class="card-title"><i class="fas fa-robot"></i> 3. Machine Learning</div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Target Column</label>
-                    <input type="text" id="target-col" placeholder="e.g. price" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Model Type</label>
-                    <select id="model-type" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
-                        <option value="linear_regression">Linear Regression</option>
-                        <option value="random_forest_reg">Random Forest Regressor</option>
-                        <option value="logistic_regression">Logistic Regression</option>
-                        <option value="random_forest_clf">Random Forest Classifier</option>
-                    </select>
-                </div>
-                <button id="btn-train" class="btn btn-primary" onclick="trainModel()" style="width: 100%;" disabled>
-                    Train & Evaluate
-                </button>
-            </div>
-        </aside>
+<div class="card">
+<div class="card-title">1. Import Data</div>
 
-        <main>
-            <div class="card" style="min-height: 400px;">
-                <div class="card-title"><i class="fas fa-table"></i> Data Preview & Insights</div>
-                
-                <div id="empty-state" style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
-                    <i class="fas fa-database" style="font-size: 3rem; opacity: 0.2; margin-bottom: 1rem;"></i>
-                    <p>No data loaded. Please upload a dataset to begin.</p>
-                </div>
+<input type="file" id="fileInput" class="hidden" accept=".csv,.json">
 
-                <div id="data-content" class="hidden">
-                    <div id="scan-report" style="margin-bottom: 2rem;"></div>
-                    <div class="table-container">
-                        <table id="preview-table"></table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title"><i class="fas fa-terminal"></i> System Logs</div>
-                <div id="console">> Ready for input...</div>
-            </div>
-        </main>
-    </div>
+<div class="upload-zone" onclick="fileInput.click()">
+<p id="file-name">Click to upload CSV or JSON</p>
 </div>
 
+<button class="btn btn-primary" onclick="uploadFile()" style="width:100%;margin-top:1rem">
+Upload & Initialize
+</button>
+</div>
+
+
+<div class="card">
+<div class="card-title">2. Actions</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+
+<button id="btn-scan" class="btn btn-outline" onclick="scanData()" disabled>
+Run Health Scan
+</button>
+
+<button id="btn-clean" class="btn btn-outline" onclick="autoClean()" disabled>
+Auto-Optimize Data
+</button>
+
+<button id="btn-undo" class="btn btn-outline" onclick="undoAction()" disabled>
+Undo Last Step
+</button>
+
+<button id="btn-export" class="btn btn-outline" onclick="exportData()" disabled>
+Export Optimized Data
+</button>
+
+</div>
+</div>
+
+
+<div class="card">
+<div class="card-title">3. Machine Learning</div>
+
+<input id="target-col" placeholder="Target column" style="width:100%;padding:8px;margin-bottom:1rem">
+
+<select id="model-type" style="width:100%;padding:8px;margin-bottom:1rem">
+<option value="linear_regression">Linear Regression</option>
+<option value="random_forest_reg">Random Forest Regressor</option>
+<option value="logistic_regression">Logistic Regression</option>
+<option value="random_forest_clf">Random Forest Classifier</option>
+</select>
+
+<button id="btn-train" class="btn btn-primary" onclick="trainModel()" style="width:100%" disabled>
+Train & Evaluate
+</button>
+
+</div>
+
+</aside>
+
+
+<!-- RIGHT -->
+<main>
+
+<div class="card" style="min-height:400px">
+<div class="card-title">Data Preview</div>
+
+<div id="empty-state" style="text-align:center;padding:4rem;color:gray">
+No data loaded
+</div>
+
+<div id="data-content" class="hidden">
+<div class="table-container">
+<table id="preview-table"></table>
+</div>
+</div>
+
+</div>
+
+<div class="card">
+<div class="card-title">System Logs</div>
+<div id="console">> Ready...</div>
+</div>
+
+</main>
+
+</div>
+</div>
+
+
 <script>
-    const API_BASE = "http://localhost:8000";
-    let currentSessionId = "";
+const API_BASE="http://localhost:8000";
+let currentSessionId="";
 
-    // Logging helper
-    function log(message, type = 'info') {
-        const consoleEl = document.getElementById('console');
-        const time = new Date().toLocaleTimeString();
-        consoleEl.innerHTML += `<div><span style="color: #6B7280">[${time}]</span> ${message}</div>`;
-        consoleEl.scrollTop = consoleEl.scrollHeight;
-    }
+/* LOG FUNCTION (ปรับเวลาใหม่) */
+function log(message){
+const now=new Date();
+const time=now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+const el=document.getElementById("console");
+el.innerHTML+=`<div><span style="color:#6B7280;font-size:.7rem">[${time}]</span> ${message}</div>`;
+el.scrollTop=el.scrollHeight;
+}
 
-    // 1. Upload File
-    async function uploadFile() {
-        const fileInput = document.getElementById('fileInput');
-        if (!fileInput.files[0]) return alert("Please select a file");
 
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
+/* UPLOAD */
+async function uploadFile(){
+const file=fileInput.files[0];
+if(!file)return alert("Select file");
 
-        try {
-            log("Uploading dataset...");
-            const response = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
-            const data = await response.json();
-            
-            currentSessionId = data.session_id;
-            document.getElementById('session-badge').classList.remove('hidden');
-            document.getElementById('session-id-display').innerText = `ID: ${currentSessionId.substring(0,8)}...`;
-            
-            // Enable buttons
-            document.getElementById('btn-scan').disabled = false;
-            document.getElementById('btn-train').disabled = false;
-            
-            updateUI(data.preview);
-            log("Upload successful. Session started.");
-        } catch (e) {
-            log("Error: " + e.message);
-        }
-    }
+const form=new FormData();
+form.append("file",file);
 
-    // 2. Scan Data
-    async function scanData() {
-        try {
-            log("Scanning for anomalies...");
-            const response = await fetch(`${API_BASE}/scan/${currentSessionId}`);
-            const report = await response.json();
-            
-            displayReport(report);
-            document.getElementById('btn-clean').disabled = false;
-            log("Health scan complete.");
-        } catch (e) { log("Scan failed: " + e.message); }
-    }
+log("Uploading dataset...");
 
-    // 3. Auto Clean
-    async function autoClean() {
-        try {
-            log("Running optimization pipeline...");
-            const response = await fetch(`${API_BASE}/auto-clean/${currentSessionId}`, { method: 'POST' });
-            const data = await response.json();
-            
-            updateUI(data.preview);
-            document.getElementById('btn-undo').disabled = false;
-            log("Data cleaned & transformed successfully.");
-        } catch (e) { log("Cleaning failed: " + e.message); }
-    }
+const res=await fetch(`${API_BASE}/upload`,{method:"POST",body:form});
+const data=await res.json();
 
-    // 4. Undo
-    async function undoAction() {
-        try {
-            const response = await fetch(`${API_BASE}/undo/${currentSessionId}`, { method: 'POST' });
-            const data = await response.json();
-            if(data.preview) updateUI(data.preview);
-            log(data.message);
-        } catch (e) { log("Undo failed."); }
-    }
+currentSessionId=data.session_id;
 
-    // 5. Train Model
-    async function trainModel() {
-        const target = document.getElementById('target-col').value;
-        const modelType = document.getElementById('model-type').value;
+sessionBadge.classList.remove("hidden");
+sessionIdDisplay.innerText="ID: "+currentSessionId.slice(0,8);
 
-        if (!target) return alert("Please specify a target column");
+btnScan.disabled=false;
+btnTrain.disabled=false;
 
-        try {
-            log(`Training ${modelType} on target: ${target}...`);
-            const response = await fetch(`${API_BASE}/train`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    session_id: currentSessionId,
-                    target_column: target,
-                    model_type: modelType
-                })
-            });
-            const result = await response.json();
-            
-            if (result.status === "success") {
-                log(`Success! ${result.metrics.type} Accuracy/R2: ${ (result.metrics.accuracy || result.metrics.r2_score).toFixed(4) }`, 'success');
-            } else {
-                log("Error: " + result.error);
-            }
-        } catch (e) { log("Training failed: " + e.message); }
-    }
+updateUI(data.preview);
+log("Upload success");
+}
 
-    // UI Helpers
-    function updateUI(previewData) {
-        document.getElementById('empty-state').classList.add('hidden');
-        document.getElementById('data-content').classList.remove('hidden');
-        
-        const table = document.getElementById('preview-table');
-        if (previewData.length === 0) return;
 
-        let html = `<thead><tr>${Object.keys(previewData[0]).map(k => `<th>${k}</th>`).join('')}</tr></thead>`;
-        html += `<tbody>${previewData.map(row => `<tr>${Object.values(row).map(v => `<td>${typeof v === 'number' ? v.toFixed(2) : v}</td>`).join('')}</tr>`).join('')}</tbody>`;
-        table.innerHTML = html;
-    }
+/* SCAN */
+async function scanData(){
+log("Scanning...");
+const r=await fetch(`${API_BASE}/scan/${currentSessionId}`);
+await r.json();
+btnClean.disabled=false;
+log("Scan complete");
+}
 
-    function displayReport(report) {
-        const container = document.getElementById('scan-report');
-        let html = `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">`;
-        
-        // Missing Values
-        html += `<div class="card" style="margin:0; border-color: #FEE2E2">
-            <div style="font-weight:600; color:#991B1B; margin-bottom:8px">Missing Values</div>`;
-        for (let col in report.missing_analysis) {
-            html += `<div class="report-item"><span>${col}</span> <span class="badge badge-danger">${report.missing_analysis[col]}%</span></div>`;
-        }
-        html += `</div>`;
 
-        // Outliers
-        html += `<div class="card" style="margin:0; border-color: #FEF3C7">
-            <div style="font-weight:600; color:#92400E; margin-bottom:8px">Outliers Detected</div>`;
-        for (let col in report.outlier_analysis) {
-            html += `<div class="report-item"><span>${col}</span> <span class="badge badge-warning">${report.outlier_analysis[col].count} rows</span></div>`;
-        }
-        html += `</div></div>`;
+/* CLEAN */
+async function autoClean(){
+log("Optimizing...");
+const r=await fetch(`${API_BASE}/auto-clean/${currentSessionId}`,{method:"POST"});
+const d=await r.json();
 
-        container.innerHTML = html;
-    }
+updateUI(d.preview);
 
-    // File input label update
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        if(this.files[0]) document.getElementById('file-name').innerText = this.files[0].name;
-    });
+btnUndo.disabled=false;
+btnExport.disabled=false;
+
+log("Optimization complete");
+}
+
+
+/* UNDO */
+async function undoAction(){
+const r=await fetch(`${API_BASE}/undo/${currentSessionId}`,{method:"POST"});
+const d=await r.json();
+updateUI(d.preview);
+log("Undo done");
+}
+
+
+/* EXPORT */
+async function exportData(){
+log("Preparing export...");
+const res=await fetch(`${API_BASE}/export/${currentSessionId}`);
+const blob=await res.blob();
+
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");
+a.href=url;
+a.download="optimized_data.csv";
+a.click();
+a.remove();
+
+log("Export complete");
+}
+
+
+/* TRAIN */
+async function trainModel(){
+const target=document.getElementById("target-col").value;
+const type=document.getElementById("model-type").value;
+if(!target)return alert("Enter target column");
+
+log("Training model...");
+
+const r=await fetch(`${API_BASE}/train`,{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+session_id:currentSessionId,
+target_column:target,
+model_type:type
+})
+});
+
+const d=await r.json();
+
+if(d.status==="success")
+log("Score: "+(d.metrics.accuracy||d.metrics.r2_score).toFixed(4));
+else
+log("Error");
+}
+
+
+/* TABLE */
+function updateUI(data){
+emptyState.classList.add("hidden");
+dataContent.classList.remove("hidden");
+
+if(!data.length)return;
+
+let html="<thead><tr>";
+Object.keys(data[0]).forEach(k=>html+=`<th>${k}</th>`);
+html+="</tr></thead><tbody>";
+
+data.forEach(r=>{
+html+="<tr>";
+Object.values(r).forEach(v=>html+=`<td>${v}</td>`);
+html+="</tr>";
+});
+
+html+="</tbody>";
+previewTable.innerHTML=html;
+}
+
+
+/* FILE NAME */
+fileInput.addEventListener("change",()=>{
+if(fileInput.files[0])
+fileName.innerText=fileInput.files[0].name;
+});
 </script>
 
 </body>
