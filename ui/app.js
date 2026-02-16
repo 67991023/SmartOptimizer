@@ -4,15 +4,8 @@ let pendingUpdate = null;
 
 // Theme Management
 function initTheme() {
-    const theme = localStorage.getItem("theme") || "light";
-    const html = document.documentElement;
-    if (theme === "dark") {
-        html.setAttribute("data-theme", "dark");
-        updateThemeIcon("sun");
-    } else {
-        html.removeAttribute("data-theme");
-        updateThemeIcon("moon");
-    }
+    const theme = document.documentElement.getAttribute("data-theme") || "light";
+    updateThemeIcon(theme === "dark" ? "sun" : "moon");
 }
 
 function toggleTheme() {
