@@ -10,7 +10,6 @@ TEMP_DIR = Path(tempfile.gettempdir()) / "smartoptimizer"
 TEMP_DIR.mkdir(exist_ok=True)
 
 def load_csv_smart(file_path, file_size: int = 0, session_id: str = "default") -> Tuple:
-    from pathlib import Path
     file_path = Path(file_path)
     size_mb = file_size / (1024 * 1024) if file_size else file_path.stat().st_size / (1024 * 1024)
 
@@ -37,7 +36,7 @@ def load_json_smart(content: bytes) -> Tuple:
     return finalize_df(pd.read_json(io.BytesIO(content)), len(content) / (1024 * 1024))
 
 def load_xml_smart(content: bytes) -> Tuple:
-    import xml.etree.ElementTree as ET
+    import defusedxml.ElementTree as ET
     root = ET.fromstring(content)
     children = list(root)
     if not children: raise ValueError("Empty XML")
@@ -54,7 +53,6 @@ def load_xml_smart(content: bytes) -> Tuple:
 
 def load_sql_smart(db_path, file_size: int = 0, session_id: str = "default") -> Tuple:
     import sqlite3, gc, time
-    from pathlib import Path
     temp_db = Path(db_path)
     size_mb = file_size / (1024 * 1024) if file_size else temp_db.stat().st_size / (1024 * 1024)
     conn = sqlite3.connect(str(temp_db))
@@ -74,9 +72,7 @@ def load_sql_smart(db_path, file_size: int = 0, session_id: str = "default") -> 
         table = max(valid, key=lambda x: x[1])[0]
         row_count = max(valid, key=lambda x: x[1])[1]
 
-        if size_mb > SQL_SIZE_LARGE_MB:     MAX_ROWS = SQL_ROWS_LARGE
-        elif size_mb > SQL_SIZE_MEDIUM_MB:   MAX_ROWS = SQL_ROWS_MEDIUM
-        else:                                MAX_ROWS = SQL_ROWS_SMALL
+        MAX_ROWS = SQL_ROWS_LARGE if size_mb > SQL_SIZE_LARGE_MB else SQL_ROWS_MEDIUM if size_mb > SQL_SIZE_MEDIUM_MB else SQL_ROWS_SMALL
 
         sampled = row_count > MAX_ROWS
         limit = min(row_count, MAX_ROWS)

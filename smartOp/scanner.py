@@ -1,5 +1,5 @@
 from .utils import is_dask_dataframe as _is_dask
-from .config import DASK_SAMPLE_SIZE, CORRELATION_THRESHOLD
+from .config import DASK_SAMPLE_SIZE, CORRELATION_THRESHOLD, OUTLIER_RATIO_THRESHOLD
 import numpy as np
 
 class AdvancedDataScanner:
@@ -25,24 +25,21 @@ class AdvancedDataScanner:
             miss = sample[col].isnull().mean()
             if miss > 0:
                 report["missing_analysis"][col] = round(float(miss) * 100, 2)
-                if col in num_cols:
-                    report["recommendations"][f"impute_{col}"] = "median" if abs(sample[col].skew()) > 1.0 else "mean"
-                else:
-                    report["recommendations"][f"impute_{col}"] = "mode"
 
             if col in num_cols:
                 Q1, Q3 = sample[col].quantile(0.25), sample[col].quantile(0.75)
                 IQR = Q3 - Q1
                 lo, hi = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
+                n_sample = len(sample)
                 outliers = int(((sample[col] < lo) | (sample[col] > hi)).sum())
-                if outliers > 0:
-                    report["outlier_analysis"][col] = {"count": outliers, "method": "IQR", "bounds": [float(lo), float(hi)]}
+                ratio = outliers / n_sample if n_sample > 0 else 0
+                if outliers > 0 and ratio <= OUTLIER_RATIO_THRESHOLD:
+                    report["outlier_analysis"][col] = {"count": outliers, "pct": round(ratio * 100, 2), "method": "IQR", "bounds": [float(lo), float(hi)]}
                     report["recommendations"][f"scale_{col}"] = "robust"
                 else:
                     report["recommendations"][f"scale_{col}"] = "standard"
             else:
-                u = sample[col].nunique()
-                report["recommendations"][f"encode_{col}"] = "onehot" if u <= 10 else "label"
+                report["recommendations"][f"encode_{col}"] = "onehot" if sample[col].nunique() <= 10 else "label"
 
         if len(num_cols) > 1:
             corr = sample[num_cols].corr().abs()

@@ -7,5 +7,6 @@ scikit-learn
 scipy
 python-multipart
 dask[dataframe]
+defusedxml
 openpyxl
 pyarrow

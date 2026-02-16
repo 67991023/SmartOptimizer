@@ -1,6 +1,5 @@
 from .utils import is_dask_dataframe as _is_dask
 from .config import DASK_SAMPLE_SIZE, MISSING_THRESHOLD
-import numpy as np
 
 class SmartCleaner:
     def __init__(self, logger=None):
@@ -52,44 +51,13 @@ class SmartCleaner:
             high_miss = [c for c in df.columns if sample[c].isnull().mean() > MISSING_THRESHOLD]
             if high_miss: df = df.drop(columns=high_miss)
         if high_miss:
-            self._block("write", f"Dropped {len(high_miss)} columns >50% missing:", high_miss)
+            self._block("write", f"Dropped {len(high_miss)} columns >{MISSING_THRESHOLD*100:.0f}% missing:", high_miss)
 
         if not is_dask and "drop_duplicates" in recs:
             before = len(df)
             df = df.drop_duplicates()
             removed = before - len(df)
             if removed > 0: self._log("write", f"Removed {removed} duplicate rows")
-
-        imputed = []
-        for key, method in recs.items():
-            if not key.startswith("impute_"): continue
-            col = key.replace("impute_", "")
-            if col not in df.columns: continue
-            src = sample if is_dask and col in sample.columns else df
-            if method == "mean": val = src[col].mean()
-            elif method == "median": val = src[col].median()
-            elif method == "mode":
-                m = src[col].mode()
-                val = m[0] if not m.empty else None
-            else: val = None
-            if val is not None:
-                df[col] = df[col].fillna(val)
-                imputed.append(f"{col} → {method}")
-        if imputed: self._block("write", f"Imputed {len(imputed)} columns:", imputed)
-
-        outlier_info, outlier_items = report.get("outlier_analysis", {}), []
-        mask = np.ones(len(df), dtype=bool) if not is_dask else None
-        for col, info in outlier_info.items():
-            if col not in df.columns: continue
-            lo, hi = info["bounds"]
-            if is_dask:
-                df = df[(df[col] >= lo) & (df[col] <= hi)]
-            else:
-                mask &= (df[col] >= lo) & (df[col] <= hi)
-            outlier_items.append(f"{col}: [{lo:.2f}, {hi:.2f}]")
-        if not is_dask and mask is not None and not mask.all():
-            df = df[mask]
-        if outlier_items: self._block("write", f"Filtered outliers in {len(outlier_items)} columns:", outlier_items)
 
         drop_cols = report.get("correlation_alert", [])
         corr_details = report.get("correlation_details", [])

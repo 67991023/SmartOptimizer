@@ -1,5 +1,5 @@
 from .utils import is_dask_dataframe as _is_dask
-from .config import MAX_TRAIN_ROWS, TREE_SAMPLE_CAP
+from .config import MAX_TRAIN_ROWS, TREE_SAMPLE_CAP, NAN_FILL_LABEL
 
 class ModelTrainer:
     def train(self, df, target: str, model_type: str):
@@ -22,29 +22,34 @@ class ModelTrainer:
         else:
             cap = TREE_SAMPLE_CAP if "random_forest" in model_type else MAX_TRAIN_ROWS
             if len(df) > cap:
-                df_train = df.sample(n=cap, random_state=42)
+                df_train = df.sample(n=cap, random_state=42).copy()
                 note = f"Sampled {cap:,} of {len(df):,} rows"
             else:
-                df_train = df
+                df_train = df.copy()
 
-        # Convert category columns to numeric codes for sklearn
         for col in df_train.columns:
             if hasattr(df_train[col], 'cat'):
                 df_train[col] = df_train[col].cat.codes
 
         X, y = df_train.drop(columns=[target]), df_train[target]
 
-        # Drop any remaining non-numeric columns
         non_num = X.select_dtypes(exclude=[np.number]).columns.tolist()
         if non_num: X = X.drop(columns=non_num)
         if X.empty: return {"error": "No numeric features available for training"}, None
 
+        # Fill NaN in training copy (doesn't touch session data)
+        for col in X.columns:
+            if X[col].isna().any():
+                X[col] = X[col].fillna(X[col].median())
+        if y.isna().any():
+            y = y.fillna(y.median() if np.issubdtype(y.dtype, np.number) else NAN_FILL_LABEL)
+
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         models = {"linear_regression": (lambda: LinearRegression(), True),
-                  "random_forest_reg": (lambda: RandomForestRegressor(n_estimators=100, n_jobs=-1), True),
+                  "random_forest_reg": (lambda: RandomForestRegressor(n_estimators=100), True),
                   "logistic_regression": (lambda: LogisticRegression(max_iter=1000), False),
-                  "random_forest_clf": (lambda: RandomForestClassifier(n_estimators=100, n_jobs=-1), False)}
+                  "random_forest_clf": (lambda: RandomForestClassifier(n_estimators=100), False)}
         if model_type not in models: return {"error": "Unsupported model type"}, None
 
         make_model, is_reg = models[model_type]

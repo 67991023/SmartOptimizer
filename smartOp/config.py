@@ -5,15 +5,19 @@ _cfg = configparser.ConfigParser()
 _cfg.read(Path(__file__).parent.parent / "config.cfg")
 _g = _cfg.getint
 
+# server
+SERVER_PORT = _g("server", "port", fallback=8080)
 # dask
 DASK_THRESHOLD = _g("dask", "threshold_mb", fallback=500) * 1024 * 1024
 DASK_SAMPLE_SIZE = _g("dask", "sample_size", fallback=50000)
 # training
 MAX_TRAIN_ROWS = _g("training", "max_train_rows", fallback=1000000)
 TREE_SAMPLE_CAP = _g("training", "tree_sample_cap", fallback=200000)
+NAN_FILL_LABEL = _cfg.get("training", "nan_fill_label", fallback="Unknown")
 # processing
 CORRELATION_THRESHOLD = _g("processing", "correlation_threshold", fallback=95) / 100
 MISSING_THRESHOLD = _g("processing", "missing_threshold", fallback=50) / 100
+OUTLIER_RATIO_THRESHOLD = _g("processing", "outlier_ratio_threshold", fallback=25) / 100
 MAX_LABEL_CARDINALITY = _g("processing", "max_label_cardinality", fallback=10000)
 LARGE_DF_THRESHOLD = _g("processing", "large_df_threshold", fallback=100000)
 # loader

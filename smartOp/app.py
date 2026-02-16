@@ -1,20 +1,17 @@
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import uuid
+import uuid, traceback, re
 
 from .state import SessionState, sessions
 from .logger import get_logger, compute_data_hash
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 UI_DIR = BASE_DIR / "ui"
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 
 app = FastAPI(title="Smart Data Optimizer API")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-app.mount("/static", StaticFiles(directory=UI_DIR), name="static")
 
 class TrainRequest(BaseModel):
     session_id: str
@@ -27,7 +24,11 @@ async def serve_frontend(): return FileResponse(UI_DIR / "index.html")
 @app.get("/styles.css")
 async def serve_css(): return FileResponse(UI_DIR / "styles.css")
 
+@app.get("/app.js")
+async def serve_js(): return FileResponse(UI_DIR / "app.js")
+
 def _get(session_id):
+    if not _UUID_RE.match(session_id): raise HTTPException(status_code=400, detail="Invalid session ID")
     if session_id not in sessions: raise HTTPException(status_code=404, detail="Session not found")
     return sessions[session_id]
 
@@ -37,9 +38,9 @@ async def upload_file(file: UploadFile = File(...)):
     from .utils import sanitize_preview, sanitize_value
     import asyncio
     try:
+        import gc
         session_id, fn = str(uuid.uuid4()), file.filename.lower()
 
-        import gc
         for _sid in list(sessions.keys()):
             try: del sessions[_sid]
             except: pass
@@ -76,7 +77,6 @@ async def upload_file(file: UploadFile = File(...)):
             try: temp_path.unlink()
             except: pass
 
-        import gc
         state = SessionState()
         state.push(df)
         state.is_dask = meta.get("using_dask", False)
@@ -104,7 +104,7 @@ async def upload_file(file: UploadFile = File(...)):
         return resp
     except HTTPException: raise
     except Exception as e:
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/scan/{session_id}")
@@ -117,15 +117,22 @@ def scan_data(session_id: str):
     report = AdvancedDataScanner().analyze(state.get_current())
     state.latest_report = report
 
+    from .config import MISSING_THRESHOLD
     missing = report.get('missing_analysis', {})
     outliers = report.get('outlier_analysis', {})
     if missing:
-        items = [f"{c}: {p}% missing" for c, p in sorted(missing.items(), key=lambda x: -x[1])[:10]]
-        if len(missing) > 10: items.append(f"... and {len(missing)-10} more")
-        logger.block("info", f"Missing values in {len(missing)} columns:", items)
+        thresh_pct = MISSING_THRESHOLD * 100
+        drop = {c: p for c, p in missing.items() if p > thresh_pct}
+        keep = {c: p for c, p in missing.items() if p <= thresh_pct}
+        if drop:
+            logger.block("warning", f"{len(drop)} columns above {thresh_pct:.0f}% missing (will be dropped):",
+                         [f"{c}: {p}% missing" for c, p in sorted(drop.items(), key=lambda x: -x[1])])
+        if keep:
+            logger.block("info", f"{len(keep)} columns with minor missing values (kept as-is):",
+                         [f"{c}: {p}% missing" for c, p in sorted(keep.items(), key=lambda x: -x[1])])
     if outliers:
-        logger.block("info", f"Outliers in {len(outliers)} columns:",
-                     [f"{c}: {i['count']} outliers [{i['bounds'][0]:.2f}, {i['bounds'][1]:.2f}]" for c, i in list(outliers.items())[:5]])
+        logger.block("info", f"Outliers detected in {len(outliers)} columns (kept as-is):",
+                     [f"{c}: {i['count']} outliers [{i['bounds'][0]:.2f}, {i['bounds'][1]:.2f}]" for c, i in outliers.items()])
     corr = report.get('correlation_details', [])
     if corr:
         logger.block("warning", "Highly correlated columns:",
@@ -152,7 +159,7 @@ def auto_clean(session_id: str):
         preview = [] if state.is_dask else sanitize_preview(df)
         return {"message": "Data cleaned and transformed", "columns": list(df.columns), "preview": preview}
     except Exception as e:
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         logger.error(f"Auto-clean failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -181,6 +188,7 @@ def train_model(req: TrainRequest):
             logger.checkpoint(f"Model trained: {req.model_type}, score={m.get('accuracy') or m.get('r2_score', 'N/A')}")
         return result
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Training failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

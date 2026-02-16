@@ -12,306 +12,108 @@
 
 <nav class="navbar">
     <div class="logo"><i class="fas fa-microchip"></i> SmartData Optimizer</div>
-    <div id="session-badge" class="hidden">
-        <span class="badge badge-warning" id="session-id-display">Session: None</span>
+    <div class="navbar-right">
+        <div id="session-badge" class="hidden">
+            <span class="session-pill" id="session-id-display">SESSION: -</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode" onclick="toggleTheme()">
+            <i class="fas fa-moon"></i>
+        </button>
     </div>
 </nav>
 
-<div class="container">
-    <div class="workflow-grid">
-        <aside>
-            <div class="card">
-                <div class="card-title"><i class="fas fa-cloud-upload-alt"></i> 1. Import Data</div>
-                <input type="file" id="fileInput" class="hidden" accept=".csv,.json,.xml,.db,.sqlite,.sqlite3,.sql,.xlsx,.xls,.parquet">
-                <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-file-import"></i>
-                    <p id="file-name">CSV, JSON, XML, SQLite, Excel, Parquet</p>
-                </div>
-                <button class="btn btn-primary" onclick="uploadFile()" style="width: 100%; margin-top: 1rem;">
-                    Upload & Initialize
+<div class="main-layout">
+    <aside>
+        <div class="card">
+            <div class="card-title"><i class="fas fa-file-import"></i> 1. Import Data</div>
+            <input type="file" id="fileInput" class="hidden" accept=".csv,.json,.xml,.db,.sqlite,.sqlite3,.sql,.xlsx,.xls,.parquet" aria-label="Upload dataset">
+            <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p id="file-name">CSV, JSON, XML, SQLite, Excel, Parquet</p>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="uploadFile()">Upload &amp; Initialize</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title"><i class="fas fa-tools"></i> 2. Actions</div>
+            <div class="action-stack">
+                <button id="btn-scan" class="btn btn-outline btn-full" onclick="scanData()" disabled>
+                    <i class="fas fa-search"></i> Run Health Scan
+                </button>
+                <button id="btn-clean" class="btn btn-outline btn-full" onclick="autoClean()" disabled>
+                    <i class="fas fa-broom"></i> Auto-Optimize Data
+                </button>
+                <button id="btn-undo" class="btn btn-outline btn-full" onclick="undoAction()" disabled>
+                    <i class="fas fa-undo"></i> Undo Last Step
+                </button>
+                <button id="btn-export" class="btn btn-outline btn-full btn-export" onclick="exportData()" disabled>
+                    <i class="fas fa-download"></i> Export Result
                 </button>
             </div>
+        </div>
 
-            <div class="card">
-                <div class="card-title"><i class="fas fa-magic"></i> 2. Actions</div>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button id="btn-scan" class="btn btn-outline" onclick="scanData()" disabled>
-                        <i class="fas fa-search"></i> Run Health Scan
-                    </button>
-                    <button id="btn-clean" class="btn btn-outline" onclick="autoClean()" disabled>
-                        <i class="fas fa-broom"></i> Auto-Optimize Data
-                    </button>
-                    <button id="btn-undo" class="btn btn-outline" onclick="undoAction()" disabled>
-                        <i class="fas fa-undo"></i> Undo Last Step
-                    </button>
-                </div>
+        <div class="card">
+            <div class="card-title"><i class="fas fa-brain"></i> 3. Machine Learning</div>
+            <label class="form-label">Target Column</label>
+            <input type="text" id="target-col" placeholder="e.g. price">
+            <label class="form-label">Algorithm</label>
+            <select id="model-type" title="Algorithm">
+                <option value="linear_regression">Linear Regression</option>
+                <option value="random_forest_reg">Random Forest Regressor</option>
+                <option value="logistic_regression">Logistic Regression</option>
+                <option value="random_forest_clf">Random Forest Classifier</option>
+            </select>
+            <button id="btn-train" class="btn btn-primary btn-full" onclick="trainModel()" disabled>
+                Train &amp; Evaluate
+            </button>
+        </div>
+    </aside>
+
+    <main>
+        <div class="health-bar" id="health-stats">
+            <div class="health-stat">
+                <div class="label">Total Samples</div>
+                <div class="value" id="stat-rows">-</div>
+            </div>
+            <div class="health-stat">
+                <div class="label">Missing Check</div>
+                <div class="value" id="stat-missing">-</div>
+            </div>
+            <div class="health-stat">
+                <div class="label">Duplicates</div>
+                <div class="value" id="stat-dupes">-</div>
+            </div>
+            <div class="health-stat">
+                <div class="label">Reliability</div>
+                <div class="value" id="stat-quality">-</div>
+            </div>
+        </div>
+
+        <div class="card card-preview">
+            <div class="card-title"><i class="fas fa-table"></i> Data Preview</div>
+
+            <div id="empty-state" class="empty-state">
+                <i class="fas fa-database"></i>
+                <p>No data loaded. Upload a dataset to begin.</p>
             </div>
 
-            <div class="card">
-                <div class="card-title"><i class="fas fa-robot"></i> 3. Machine Learning</div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Target Column</label>
-                    <input type="text" id="target-col" placeholder="e.g. price" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Model Type</label>
-                    <select id="model-type" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
-                        <option value="linear_regression">Linear Regression</option>
-                        <option value="random_forest_reg">Random Forest Regressor</option>
-                        <option value="logistic_regression">Logistic Regression</option>
-                        <option value="random_forest_clf">Random Forest Classifier</option>
-                    </select>
-                </div>
-                <button id="btn-train" class="btn btn-primary" onclick="trainModel()" style="width: 100%;" disabled>
-                    Train & Evaluate
-                </button>
-            </div>
-        </aside>
-
-        <main>
-            <div class="card" style="min-height: 400px;">
-                <div class="card-title"><i class="fas fa-table"></i> Data Preview & Insights</div>
-                
-                <div id="empty-state" style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
-                    <i class="fas fa-database" style="font-size: 3rem; opacity: 0.2; margin-bottom: 1rem;"></i>
-                    <p>No data loaded. Please upload a dataset to begin.</p>
-                </div>
-
-                <div id="data-content" class="hidden">
-                    <div id="scan-report" style="margin-bottom: 2rem;"></div>
+            <div id="data-content" class="hidden">
+                <div id="scan-report"></div>
+                <div class="table-wrapper">
                     <div class="table-container">
                         <table id="preview-table"></table>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="card">
-                <div class="card-title"><i class="fas fa-terminal"></i> System Logs</div>
-                <div id="console">> Ready for input...</div>
-            </div>
-        </main>
-    </div>
+        <div class="card">
+            <div class="card-title"><i class="fas fa-terminal"></i> System Logs</div>
+            <div id="console">> Ready for input...</div>
+        </div>
+    </main>
 </div>
 
-<script>
-    const API_BASE = "";  // Same origin - served from FastAPI
-    let currentSessionId = "";
-    let pendingUpdate = null;  // Stores pending UI update if tab was hidden
-
-    // Logging helper
-    function log(message, type = 'info') {
-        const consoleEl = document.getElementById('console');
-        const time = new Date().toLocaleTimeString();
-        consoleEl.innerHTML += `<div><span style="color: #6B7280">[${time}]</span> ${message}</div>`;
-        consoleEl.scrollTop = consoleEl.scrollHeight;
-    }
-
-    // Loading state helpers
-    function setLoading(btnId, loading) {
-        const btn = document.getElementById(btnId);
-        if (!btn) return;
-        if (loading) {
-            btn.disabled = true;
-            btn._origHTML = btn.innerHTML;
-            const label = btn.textContent.trim();
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${label}...`;
-        } else {
-            btn.disabled = false;
-            if (btn._origHTML) btn.innerHTML = btn._origHTML;
-        }
-    }
-
-    // Flush pending UI updates when user tabs back
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && pendingUpdate) {
-            const { preview, logMsg, btnId } = pendingUpdate;
-            if (preview) updateUI(preview);
-            if (logMsg) log(logMsg);
-            if (btnId) setLoading(btnId, false);
-            pendingUpdate = null;
-        }
-    });
-
-    // 1. Upload File
-    async function uploadFile() {
-        const fileInput = document.getElementById('fileInput');
-        if (!fileInput.files[0]) return alert("Please select a file");
-
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-
-        try {
-            log("Uploading dataset...");
-            setLoading('btn-scan', true);
-            const response = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
-            const data = await response.json();
-            
-            // Check for server error
-            if (!response.ok || data.detail) {
-                log(`Error: ${data.detail || 'Upload failed'}`);
-                return;
-            }
-            
-            if (!data.session_id) {
-                log("Error: No session ID returned from server");
-                return;
-            }
-            
-            currentSessionId = data.session_id;
-            document.getElementById('session-badge').classList.remove('hidden');
-            document.getElementById('session-id-display').innerText = `ID: ${currentSessionId.substring(0,8)}...`;
-            
-            // Enable buttons
-            document.getElementById('btn-scan').disabled = false;
-            document.getElementById('btn-train').disabled = false;
-            
-            updateUI(data.preview || []);
-            
-            // Show stats
-            if (data.stats) {
-                const s = data.stats;
-                if (s.using_dask) {
-                    log(`🚀 DASK MODE: ${s.original_rows?.toLocaleString()} rows | Out-of-core processing enabled`);
-                } else {
-                    log(`Loaded ${s.original_rows?.toLocaleString() || '?'} rows | Memory: ${s.memory_mb}MB (saved ${s.memory_saved_pct}%)`);
-                }
-            }
-            
-            // Show info for large files
-            if (data.info) {
-                log(`ℹ️ ${data.info}`);
-            }
-            
-            log("Upload successful. Session started.");
-        } catch (e) {
-            log("Error: " + e.message);
-        } finally {
-            setLoading('btn-scan', false);
-        }
-    }
-
-    // 2. Scan Data
-    async function scanData() {
-        try {
-            log("Scanning for anomalies...");
-            setLoading('btn-scan', true);
-            const response = await fetch(`${API_BASE}/scan/${currentSessionId}`);
-            const report = await response.json();
-            
-            displayReport(report);
-            document.getElementById('btn-clean').disabled = false;
-            log("Health scan complete.");
-        } catch (e) { log("Scan failed: " + e.message); }
-        finally { setLoading('btn-scan', false); }
-    }
-
-    // 3. Auto Clean
-    async function autoClean() {
-        try {
-            log("Running optimization pipeline...");
-            setLoading('btn-clean', true);
-            const response = await fetch(`${API_BASE}/auto-clean/${currentSessionId}`, { method: 'POST' });
-            const data = await response.json();
-            
-            // Check for server error
-            if (!response.ok || data.detail) {
-                log(`Cleaning failed: ${data.detail || 'Unknown error'}`);
-                return;
-            }
-            
-            const msg = `Data cleaned & transformed. ${data.columns?.length || 0} columns.`;
-            if (document.hidden) {
-                pendingUpdate = { preview: data.preview, logMsg: msg, btnId: 'btn-clean' };
-            } else {
-                if (data.preview) updateUI(data.preview);
-                log(msg);
-            }
-            document.getElementById('btn-undo').disabled = false;
-        } catch (e) { log("Cleaning failed: " + e.message); }
-        finally { if (!pendingUpdate) setLoading('btn-clean', false); }
-    }
-
-    // 4. Undo
-    async function undoAction() {
-        try {
-            const response = await fetch(`${API_BASE}/undo/${currentSessionId}`, { method: 'POST' });
-            const data = await response.json();
-            if(data.preview) updateUI(data.preview);
-            log(data.message);
-        } catch (e) { log("Undo failed."); }
-    }
-
-    // 5. Train Model
-    async function trainModel() {
-        const target = document.getElementById('target-col').value;
-        const modelType = document.getElementById('model-type').value;
-
-        if (!target) return alert("Please specify a target column");
-
-        try {
-            log(`Training ${modelType} on target: ${target}...`);
-            setLoading('btn-train', true);
-            const response = await fetch(`${API_BASE}/train`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    session_id: currentSessionId,
-                    target_column: target,
-                    model_type: modelType
-                })
-            });
-            const result = await response.json();
-            
-            if (result.status === "success") {
-                log(`Success! ${result.metrics.type} Accuracy/R2: ${ (result.metrics.accuracy || result.metrics.r2_score).toFixed(4) }`, 'success');
-            } else {
-                log("Error: " + result.error);
-            }
-        } catch (e) { log("Training failed: " + e.message); }
-        finally { setLoading('btn-train', false); }
-    }
-
-    // UI Helpers
-    function updateUI(previewData) {
-        document.getElementById('empty-state').classList.add('hidden');
-        document.getElementById('data-content').classList.remove('hidden');
-        
-        const table = document.getElementById('preview-table');
-        if (previewData.length === 0) return;
-
-        let html = `<thead><tr>${Object.keys(previewData[0]).map(k => `<th>${k}</th>`).join('')}</tr></thead>`;
-        html += `<tbody>${previewData.map(row => `<tr>${Object.values(row).map(v => `<td>${typeof v === 'number' ? v.toFixed(2) : v}</td>`).join('')}</tr>`).join('')}</tbody>`;
-        table.innerHTML = html;
-    }
-
-    function displayReport(report) {
-        const container = document.getElementById('scan-report');
-        let html = `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">`;
-        
-        // Missing Values
-        html += `<div class="card" style="margin:0; border-color: #FEE2E2">
-            <div style="font-weight:600; color:#991B1B; margin-bottom:8px">Missing Values</div>`;
-        for (let col in report.missing_analysis) {
-            html += `<div class="report-item"><span>${col}</span> <span class="badge badge-danger">${report.missing_analysis[col]}%</span></div>`;
-        }
-        html += `</div>`;
-
-        // Outliers
-        html += `<div class="card" style="margin:0; border-color: #FEF3C7">
-            <div style="font-weight:600; color:#92400E; margin-bottom:8px">Outliers Detected</div>`;
-        for (let col in report.outlier_analysis) {
-            html += `<div class="report-item"><span>${col}</span> <span class="badge badge-warning">${report.outlier_analysis[col].count} rows</span></div>`;
-        }
-        html += `</div></div>`;
-
-        container.innerHTML = html;
-    }
-
-    // File input label update
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        if(this.files[0]) document.getElementById('file-name').innerText = this.files[0].name;
-    });
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>
