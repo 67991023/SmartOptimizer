@@ -1,0 +1,5 @@
+/__pycache__/
+/smartOp/__pycache__/
+*.pyc
+!/logs
+/logs/*.csv
