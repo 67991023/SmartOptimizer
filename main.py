@@ -99,74 +99,79 @@ class AdvancedDataScanner:
 
 class SmartCleaner:
     """
-    🧹 หมอ: รักษาข้อมูล (อัปเกรดเพื่อรับมือ Microsoft Malware Dataset)
+    Cleaner: Prepares data by handling IDs, missing values, duplicates, and outliers.
     """
     def clean_data(self, df: pd.DataFrame, report: dict) -> pd.DataFrame:
         df_clean = df.copy()
         recs = report.get("recommendations", {})
 
-        # 1. Drop ID Columns & High Cardinality (แก้ปัญหา MachineIdentifier)
-        # ถ้าจำนวน unique เท่ากับจำนวนแถว แสดงว่าเป็น ID -> ลบทิ้ง
+        # 1. Drop ID Columns & High Cardinality
         for col in df_clean.columns:
             if df_clean[col].nunique() == len(df_clean):
                 print(f"Dropping ID column: {col}")
                 df_clean.drop(columns=[col], inplace=True)
-                continue # ลบแล้วข้ามไป
+                continue
 
-        # 2. Drop Columns with > 50% Missing Values (แก้ปัญหา PuaMode)
+        # 2. Drop Columns with > 50% Missing Values
         limit = len(df_clean) * 0.5
         df_clean.dropna(axis=1, thresh=limit, inplace=True)
 
-        # 3. Drop Duplicates
-        if "drop_duplicates" in recs:
-            df_clean.drop_duplicates(inplace=True)
-        
-        # 4. Imputation (เติมค่าว่างส่วนที่เหลือ)
-        knn_cols = []
+        # 3. Imputation (Specific from Report)
         for key, method in recs.items():
             if key.startswith("impute_"):
                 col = key.replace("impute_", "")
                 if col not in df_clean.columns: continue
 
                 if method == "mean":
-                    df_clean[col].fillna(df_clean[col].mean(), inplace=True)
+                    df_clean[col] = df_clean[col].fillna(df_clean[col].mean())
                 elif method == "mode":
                     if not df_clean[col].mode().empty:
-                        df_clean[col].fillna(df_clean[col].mode()[0], inplace=True)
+                        df_clean[col] = df_clean[col].fillna(df_clean[col].mode()[0])
                 elif method == "knn":
-                    # สำหรับ Dataset ใหญ่ๆ KNN ช้ามาก เปลี่ยนเป็น Median ดีกว่าเพื่อความไว
-                    df_clean[col].fillna(df_clean[col].median(), inplace=True)
+                    df_clean[col] = df_clean[col].fillna(df_clean[col].median())
+
+        # 4. Final Sweep: Fill ANY remaining NaNs
         
-        # 5. Outlier Handling (Removing Rows)
+        # 4.1 Fill remaining NUMERIC columns with Median
+        num_cols = df_clean.select_dtypes(include=[np.number]).columns
+        if len(num_cols) > 0:
+            df_clean[num_cols] = df_clean[num_cols].fillna(df_clean[num_cols].median())
+            df_clean[num_cols] = df_clean[num_cols].fillna(0)
+
+        # 4.2 Fill remaining OBJECT/CATEGORY columns with 'Unknown'
+        cat_cols = df_clean.select_dtypes(include=['object', 'category']).columns
+        if len(cat_cols) > 0:
+            for col in cat_cols:
+                df_clean[col] = df_clean[col].astype(str).replace('nan', 'Unknown')
+                df_clean[col] = df_clean[col].fillna("Unknown")
+
+        # 5. Outlier Handling
         outlier_info = report.get("outlier_analysis", {})
         for col, info in outlier_info.items():
             if col in df_clean.columns:
                 lower, upper = info["bounds"]
                 df_clean = df_clean[(df_clean[col] >= lower) & (df_clean[col] <= upper)]
 
-        # 6. Correlation Drop
-        drop_cols = report.get("correlation_alert", [])
-        if drop_cols:
-            df_clean.drop(columns=drop_cols, errors='ignore', inplace=True)
+        # 6. Final check
+        if df_clean.isnull().sum().sum() > 0:
+            print(f"Warning: {df_clean.isnull().sum().sum()} NaNs remaining. Dropping rows.")
+            df_clean.dropna(inplace=True)
 
         return df_clean
 
 class FeatureEncoder:
-    """
-    ✨ สไตลิสต์: แปลงข้อมูลให้ Model เข้าใจ (Encoding & Scaling)
-    """
     def transform(self, df: pd.DataFrame, report: dict) -> pd.DataFrame:
         df_encoded = df.copy()
         recs = report.get("recommendations", {})
 
-        # 1. Encoding
+        # 1. Manual Encoding
         for key, method in recs.items():
             if key.startswith("encode_"):
                 col = key.replace("encode_", "")
                 if col not in df_encoded.columns: continue
 
                 if method == "onehot":
-                    df_encoded = pd.get_dummies(df_encoded, columns=[col], drop_first=True)
+                    df_encoded = pd.get_dummies(df_encoded, columns=[col], drop_first=True, dtype=int)
                 elif method == "label":
                     le = LabelEncoder()
                     df_encoded[col] = le.fit_transform(df_encoded[col].astype(str))
@@ -176,66 +181,164 @@ class FeatureEncoder:
         for col in numeric_cols:
             rec_key = f"scale_{col}"
             method = recs.get(rec_key, "standard")
-
             scaler = None
-            if method == "robust":
-                scaler = RobustScaler()
-            elif method == "minmax":
-                scaler = MinMaxScaler()
-            else:
-                scaler = StandardScaler()
+            if method == "robust": scaler = RobustScaler()
+            elif method == "minmax": scaler = MinMaxScaler()
+            else: scaler = StandardScaler()
             
             if scaler:
-                data = df_encoded[col].values.reshape(-1, 1)
-                df_encoded[col] = scaler.fit_transform(data)
+                try:
+                    data = df_encoded[col].values.reshape(-1, 1)
+                    df_encoded[col] = scaler.fit_transform(data)
+                except Exception as e:
+                    pass
 
+        # 3. Auto-Encoding
+        remaining_obj_cols = df_encoded.select_dtypes(include=['object', 'category']).columns
+        if len(remaining_obj_cols) > 0:
+            print(f"Auto-Encoding remaining {len(remaining_obj_cols)} columns...")
+            for col in remaining_obj_cols:
+                try:
+                    df_encoded[col] = df_encoded[col].astype('category').cat.codes
+                except:
+                    df_encoded.drop(columns=[col], inplace=True)
+        
         return df_encoded
 
 class ModelTrainer:
     """
-    🤖 โค้ช: สร้างและเทรนโมเดล
+    Trainer: Splits data and trains the model.
+    Handles regression rounding ONLY during evaluation.
     """
     def train(self, df: pd.DataFrame, target: str, model_type: str):
         if target not in df.columns:
             return {"error": f"Target column '{target}' not found"}, None
 
-        X = df.drop(columns=[target])
-        y = df[target]
+        # 1. Clean Target: Drop rows where target is NaN
+        df_ready = df.dropna(subset=[target])
+        
+        X = df_ready.drop(columns=[target])
+        y = df_ready[target]
+
+        # 2. Fix Target Type for Classifiers
+        # Classifiers need integers (0, 1), not floats (0.0, 1.0)
+        if "clf" in model_type or "logistic" in model_type:
+            y = y.astype(int)
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         model = None
-        is_regression = True
+        is_regression = False
 
         if model_type == "linear_regression":
             model = LinearRegression()
+            is_regression = True
         elif model_type == "random_forest_reg":
-            model = RandomForestRegressor(n_estimators=100)
+            model = RandomForestRegressor(n_estimators=20, random_state=42)
+            is_regression = True
         elif model_type == "logistic_regression":
-            model = LogisticRegression()
+            model = LogisticRegression(max_iter=1000)
             is_regression = False
         elif model_type == "random_forest_clf":
-            model = RandomForestClassifier(n_estimators=100)
+            model = RandomForestClassifier(n_estimators=20, random_state=42)
             is_regression = False
         else:
             return {"error": "Unsupported model type"}, None
 
         # Train
-        model.fit(X_train, y_train)
+        try:
+            print(f"Training {model_type}...")
+            model.fit(X_train, y_train)
+        except Exception as e:
+            return {"error": f"Training failed: {str(e)}"}, None
+            
+        # Predict
         y_pred = model.predict(X_test)
 
         # Evaluate
         metrics = {}
+        
         if is_regression:
             metrics["mse"] = mean_squared_error(y_test, y_pred)
             metrics["r2_score"] = r2_score(y_test, y_pred)
             metrics["type"] = "Regression"
+            
+            # --- Round ONLY for Accuracy check ---
+            # Round predictions to nearest integer (0 or 1)
+            y_pred_rounded = np.round(y_pred).astype(int)
+            # Ensure y_test is integer for comparison
+            accuracy = accuracy_score(y_test.astype(int), y_pred_rounded)
+            metrics["rounded_accuracy"] = accuracy
+            print(f"Converted Regression to Class: Accuracy = {accuracy:.4f}")
+
         else:
             metrics["accuracy"] = accuracy_score(y_test, y_pred)
             metrics["type"] = "Classification"
 
         return {"status": "success", "metrics": metrics}, model
 
+"""
+--- Example ---
+if __name__ == "__main__":
+    print("--- Phase 0: Reading ---")
+    try:
+        df = pd.read_csv("train.csv", nrows=5000, low_memory=False) 
+        df = df.sample(n=500, random_state=42)
+        print("Data Loaded.")
+    except FileNotFoundError:
+        print("Error: train.csv not found.")
+        exit()
+
+    print("--- Phase 0.5: Start ---")
+    
+    cleaning_report = {
+        "recommendations": {
+            "impute_RtpStateBitfield": "mode",
+            "impute_AVProductsInstalled": "mean",
+            "encode_ProductName": "onehot",
+            "encode_EngineVersion": "label",
+            "encode_AppVersion": "label",
+            "encode_CityIdentifier": "label",
+            "scale_Census_TotalPhysicalRAM": "standard"
+        },
+        "outlier_analysis": {
+            "Census_TotalPhysicalRAM": {"bounds": [0, 16384]} 
+        }
+    }
+
+    print("--- Phase 1: Cleaning ---")
+    cleaner = SmartCleaner()
+    df_clean = cleaner.clean_data(df, cleaning_report)
+    print(f"Original Shape: {df.shape} -> Clean Shape: {df_clean.shape}")
+
+    print("\n--- Phase 2: Feature Engineering ---")
+    encoder = FeatureEncoder()
+    df_encoded = encoder.transform(df_clean, cleaning_report)
+    print(f"Encoded Shape: {df_encoded.shape}")
+
+    non_numeric = df_encoded.select_dtypes(exclude=[np.number]).columns
+    if len(non_numeric) > 0:
+        print(f"Warning: Non-numeric columns remaining: {non_numeric}")
+    else:
+        print("All columns converted to numeric.")
+
+    print("\n--- Phase 3: Model Training ---")
+    trainer = ModelTrainer()
+    target_col = "HasDetections"
+    model_type = "random_forest_clf" 
+
+    if target_col in df_encoded.columns:
+        result, model = trainer.train(df_encoded, target=target_col, model_type=model_type)
+        
+        if "status" in result and result["status"] == "success":
+            print(f"Training Success!")
+            print(f"Model: {model_type}")
+            print(f"Metrics: {result['metrics']}")
+        else:
+            print(f"Training Failed: {result.get('error')}")
+    else:
+        print(f"Error: Target column '{target_col}' missing after cleaning!")
+"""
 # ==============================================================================
 # 🗄️ PART 2: STATE MANAGER
 # ==============================================================================
