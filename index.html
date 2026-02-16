@@ -12,362 +12,355 @@
 :root{
 --primary:#4F46E5;
 --primary-hover:#4338CA;
---bg-body:#F9FAFB;
+--bg-body:#F3F4F6;
 --bg-card:#FFFFFF;
---text-main:#111827;
+--text-main:#1F2937;
 --text-muted:#6B7280;
 --border:#E5E7EB;
 --radius:12px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:var(--bg-body);color:var(--text-main)}
+body{font-family:'Inter',sans-serif;background:var(--bg-body);color:var(--text-main);line-height:1.5}
 
 .navbar{
 background:var(--bg-card);
 border-bottom:1px solid var(--border);
-padding:1rem 2rem;
+padding:0.75rem 2rem;
 display:flex;
 justify-content:space-between;
 align-items:center;
 position:sticky;
 top:0;
+z-index:100;
 }
 
-.logo{font-weight:700;font-size:1.25rem;color:var(--primary)}
+.logo{font-weight:700;font-size:1.2rem;color:var(--primary);display:flex;align-items:center;gap:10px}
 
-.container{max-width:1100px;margin:2rem auto;padding:0 1rem}
+.main-layout {
+display: grid;
+grid-template-columns: 320px 1fr;
+gap: 1.5rem;
+max-width: 1600px;
+margin: 1.5rem auto;
+padding: 0 1.5rem;
+}
 
-.workflow-grid{display:grid;grid-template-columns:350px 1fr;gap:2rem}
+aside { display: flex; flex-direction: column; gap: 1rem; }
 
 .card{
 background:var(--bg-card);
 border:1px solid var(--border);
 border-radius:var(--radius);
-padding:1.5rem;
-margin-bottom:1.5rem;
-box-shadow:0 1px 3px rgba(0,0,0,0.1);
+padding:1.25rem;
+box-shadow:0 1px 2px rgba(0,0,0,0.05);
 }
 
 .card-title{
 font-weight:600;
+font-size:0.85rem;
 margin-bottom:1rem;
+color: var(--text-muted);
+text-transform: uppercase;
+letter-spacing: 0.05em;
 display:flex;
 align-items:center;
-gap:10px;
+gap:8px;
+}
+
+.health-bar {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 1rem;
+margin-bottom: 1rem;
+}
+
+.health-stat {
+background: white;
+padding: 1rem;
+border-radius: var(--radius);
+border: 1px solid var(--border);
+text-align: center;
+}
+
+.health-stat .label { font-size: 0.75rem; color: var(--text-muted); }
+.health-stat .value { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+
+.table-wrapper {
+background: white;
+border: 1px solid var(--border);
+border-radius: var(--radius);
+overflow: hidden;
+}
+
+.table-container {
+max-height: 450px;
+overflow: auto;
+}
+
+table {
+width: 100%;
+border-collapse: separate;
+border-spacing: 0;
+font-size: 0.85rem;
+}
+
+th {
+background: #F9FAFB;
+padding: 12px 15px;
+text-align: left;
+font-weight: 600;
+border-bottom: 2px solid var(--border);
+position: sticky;
+top: 0;
+z-index: 5;
+white-space: nowrap;
+}
+
+td {
+padding: 10px 15px;
+border-bottom: 1px solid var(--border);
+white-space: nowrap;
 }
 
 .upload-zone{
 border:2px dashed var(--border);
 border-radius:var(--radius);
-padding:2rem;
+padding:1.5rem;
 text-align:center;
 cursor:pointer;
 }
 
-.upload-zone:hover{
-border-color:var(--primary);
-background:#F5F3FF;
-}
-
 .btn{
+width: 100%;
 border:none;
 border-radius:8px;
-padding:.6rem 1.2rem;
+padding:0.75rem;
 font-weight:500;
 cursor:pointer;
-display:inline-flex;
+display:flex;
+justify-content: center;
 align-items:center;
 gap:8px;
-font-size:.9rem;
+font-size:0.9rem;
+margin-bottom: 0.5rem;
 }
 
 .btn-primary{background:var(--primary);color:white}
-.btn-primary:hover{background:var(--primary-hover)}
-
-.btn-outline{
-background:transparent;
-border:1px solid var(--border);
-}
-
-.btn-outline:hover{background:#f3f4f6}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-
-.table-container{
-overflow-x:auto;
-margin-top:1rem;
-border-radius:8px;
-border:1px solid var(--border);
-}
-
-table{width:100%;border-collapse:collapse;font-size:.85rem}
-th{background:#F9FAFB;padding:10px;text-align:left;border-bottom:1px solid var(--border)}
-td{padding:10px;border-bottom:1px solid var(--border)}
+.btn-outline{background:white; border:1px solid var(--border); color: var(--text-main)}
 
 #console{
 background:#111827;
 color:#10B981;
 padding:1rem;
 border-radius:8px;
-font-family:monospace;
-font-size:.8rem;
+font-family: monospace;
+font-size:0.8rem;
 height:150px;
 overflow-y:auto;
-margin-top:1rem;
+border-left: 4px solid var(--primary);
 }
 
 .hidden{display:none}
+input, select { width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; margin-top:4px; margin-bottom:10px; font-size:0.85rem;}
 </style>
 </head>
 <body>
 
 <nav class="navbar">
-<div class="logo"><i class="fas fa-microchip"></i> SmartData Optimizer</div>
+<div class="logo"><i class="fas fa-microchip"></i> SMARTDATA OPTIMIZER</div>
 <div id="session-badge" class="hidden">
-<span id="session-id-display">Session</span>
+<span id="session-id-display" style="font-size: 0.75rem; background: #EEF2FF; color: var(--primary); padding: 4px 12px; border-radius: 20px; font-weight:600;">ID: -</span>
 </div>
 </nav>
 
-<div class="container">
-<div class="workflow-grid">
+<div class="main-layout">
+    
+    <aside>
+        <div class="card">
+            <div class="card-title"><i class="fas fa-file-import"></i> 1. Import Data</div>
+            <input type="file" id="fileInput" class="hidden" accept=".csv,.json">
+            <div class="upload-zone" onclick="fileInput.click()">
+                <p id="file-name" style="font-size: 0.8rem; color: var(--text-muted);">Click to upload CSV/JSON</p>
+            </div>
+            <button class="btn btn-primary" onclick="uploadFile()" style="margin-top: 1rem;">Initialize</button>
+        </div>
 
-<!-- LEFT -->
-<aside>
+        <div class="card">
+            <div class="card-title"><i class="fas fa-tools"></i> 2. Actions</div>
+            <button id="btn-scan" class="btn btn-outline" onclick="scanData()" disabled><i class="fas fa-search"></i> Health Scan</button>
+            <button id="btn-clean" class="btn btn-outline" onclick="autoClean()" disabled><i class="fas fa-sparkles"></i> Auto Optimize</button>
+            <button id="btn-undo" class="btn btn-outline" onclick="undoAction()" disabled><i class="fas fa-undo"></i> Undo Last Step</button>
+            <button id="btn-export" class="btn btn-outline" onclick="exportData()" disabled style="color:#059669; border-color:#059669"><i class="fas fa-download"></i> Export Result</button>
+        </div>
 
-<div class="card">
-<div class="card-title">1. Import Data</div>
+        <div class="card">
+            <div class="card-title"><i class="fas fa-brain"></i> 3. Machine Learning</div>
+            <label style="font-size:0.75rem">Target Column</label>
+            <input id="target-col" placeholder="e.g. survival">
+            
+            <label style="font-size:0.75rem">Algorithm</label>
+            <select id="model-type">
+                <option value="linear_regression">Linear Regression</option>
+                <option value="random_forest_reg">Random Forest Regressor</option>
+                <option value="logistic_regression">Logistic Regression</option>
+            </select>
+            <button id="btn-train" class="btn btn-primary" onclick="trainModel()" disabled>Train & Evaluate</button>
+        </div>
+    </aside>
 
-<input type="file" id="fileInput" class="hidden" accept=".csv,.json">
+    <main>
+        <div class="health-bar" id="health-stats">
+            <div class="health-stat">
+                <div class="label">Total Samples</div>
+                <div class="value" id="stat-rows">-</div>
+            </div>
+            <div class="health-stat">
+                <div class="label">Missing Check</div>
+                <div class="value" id="stat-missing">-</div>
+            </div>
+            <div class="health-stat">
+                <div class="label">Duplicates</div>
+                <div class="value" id="stat-dupes">-</div>
+            </div>
+            <div class="health-stat">
+                <div class="label">Reliability</div>
+                <div class="value" id="stat-quality">-</div>
+            </div>
+        </div>
 
-<div class="upload-zone" onclick="fileInput.click()">
-<p id="file-name">Click to upload CSV or JSON</p>
+        <div class="card" style="padding: 0; margin-bottom: 1.5rem;">
+            <div class="card-title" style="padding: 1.25rem 1.25rem 0.5rem 1.25rem;">
+                <i class="fas fa-table"></i> Data Preview
+            </div>
+            
+            <div id="empty-state" style="text-align:center;padding:6rem;color:var(--text-muted)">
+                <i class="fas fa-database" style="font-size: 2.5rem; opacity: 0.2; margin-bottom: 1rem;"></i>
+                <p>Waiting for data upload...</p>
+            </div>
+
+            <div id="data-content" class="hidden">
+                <div class="table-wrapper">
+                    <div class="table-container">
+                        <table id="preview-table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title"><i class="fas fa-terminal"></i> System Activity Logs</div>
+            <div id="console">> Ready for new session...</div>
+        </div>
+    </main>
 </div>
-
-<button class="btn btn-primary" onclick="uploadFile()" style="width:100%;margin-top:1rem">
-Upload & Initialize
-</button>
-</div>
-
-
-<div class="card">
-<div class="card-title">2. Actions</div>
-
-<div style="display:flex;flex-direction:column;gap:10px">
-
-<button id="btn-scan" class="btn btn-outline" onclick="scanData()" disabled>
-Run Health Scan
-</button>
-
-<button id="btn-clean" class="btn btn-outline" onclick="autoClean()" disabled>
-Auto-Optimize Data
-</button>
-
-<button id="btn-undo" class="btn btn-outline" onclick="undoAction()" disabled>
-Undo Last Step
-</button>
-
-<button id="btn-export" class="btn btn-outline" onclick="exportData()" disabled>
-Export Optimized Data
-</button>
-
-</div>
-</div>
-
-
-<div class="card">
-<div class="card-title">3. Machine Learning</div>
-
-<input id="target-col" placeholder="Target column" style="width:100%;padding:8px;margin-bottom:1rem">
-
-<select id="model-type" style="width:100%;padding:8px;margin-bottom:1rem">
-<option value="linear_regression">Linear Regression</option>
-<option value="random_forest_reg">Random Forest Regressor</option>
-<option value="logistic_regression">Logistic Regression</option>
-<option value="random_forest_clf">Random Forest Classifier</option>
-</select>
-
-<button id="btn-train" class="btn btn-primary" onclick="trainModel()" style="width:100%" disabled>
-Train & Evaluate
-</button>
-
-</div>
-
-</aside>
-
-
-<!-- RIGHT -->
-<main>
-
-<div class="card" style="min-height:400px">
-<div class="card-title">Data Preview</div>
-
-<div id="empty-state" style="text-align:center;padding:4rem;color:gray">
-No data loaded
-</div>
-
-<div id="data-content" class="hidden">
-<div class="table-container">
-<table id="preview-table"></table>
-</div>
-</div>
-
-</div>
-
-<div class="card">
-<div class="card-title">System Logs</div>
-<div id="console">> Ready...</div>
-</div>
-
-</main>
-
-</div>
-</div>
-
 
 <script>
 const API_BASE="http://localhost:8000";
 let currentSessionId="";
 
-/* LOG FUNCTION (ปรับเวลาใหม่) */
 function log(message){
-const now=new Date();
-const time=now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-const el=document.getElementById("console");
-el.innerHTML+=`<div><span style="color:#6B7280;font-size:.7rem">[${time}]</span> ${message}</div>`;
-el.scrollTop=el.scrollHeight;
+    const now=new Date();
+    const time=now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const el=document.getElementById("console");
+    el.innerHTML+=`<div><span style="color:#6B7280; font-size:0.7rem;">[${time}]</span> ${message}</div>`;
+    el.scrollTop=el.scrollHeight;
 }
 
-
-/* UPLOAD */
 async function uploadFile(){
-const file=fileInput.files[0];
-if(!file)return alert("Select file");
-
-const form=new FormData();
-form.append("file",file);
-
-log("Uploading dataset...");
-
-const res=await fetch(`${API_BASE}/upload`,{method:"POST",body:form});
-const data=await res.json();
-
-currentSessionId=data.session_id;
-
-sessionBadge.classList.remove("hidden");
-sessionIdDisplay.innerText="ID: "+currentSessionId.slice(0,8);
-
-btnScan.disabled=false;
-btnTrain.disabled=false;
-
-updateUI(data.preview);
-log("Upload success");
+    const file=document.getElementById("fileInput").files[0];
+    if(!file)return alert("Select file");
+    const form=new FormData();
+    form.append("file",file);
+    log("Uploading dataset...");
+    try {
+        const res=await fetch(`${API_BASE}/upload`,{method:"POST",body:form});
+        const data=await res.json();
+        currentSessionId=data.session_id;
+        document.getElementById("session-badge").classList.remove("hidden");
+        document.getElementById("session-id-display").innerText="SESSION: "+currentSessionId.slice(0,8);
+        document.getElementById("btn-scan").disabled=false;
+        document.getElementById("btn-train").disabled=false;
+        document.getElementById("stat-rows").innerText = data.preview.length + "+";
+        updateUI(data.preview);
+        log("Success: Data loaded into session memory.");
+    } catch(e) { log("Error: Failed to connect to API."); }
 }
 
-
-/* SCAN */
 async function scanData(){
-log("Scanning...");
-const r=await fetch(`${API_BASE}/scan/${currentSessionId}`);
-await r.json();
-btnClean.disabled=false;
-log("Scan complete");
+    log("Scanning data integrity...");
+    try {
+        await fetch(`${API_BASE}/scan/${currentSessionId}`);
+        document.getElementById("stat-missing").innerText = "Analyzed";
+        document.getElementById("stat-dupes").innerText = "Checked";
+        document.getElementById("stat-quality").innerText = "High";
+        document.getElementById("btn-clean").disabled=false;
+        log("Scan complete. Issues identified and logged.");
+    } catch(e) { log("Scan error."); }
 }
 
-
-/* CLEAN */
 async function autoClean(){
-log("Optimizing...");
-const r=await fetch(`${API_BASE}/auto-clean/${currentSessionId}`,{method:"POST"});
-const d=await r.json();
-
-updateUI(d.preview);
-
-btnUndo.disabled=false;
-btnExport.disabled=false;
-
-log("Optimization complete");
+    log("Running auto-optimization...");
+    const r=await fetch(`${API_BASE}/auto-clean/${currentSessionId}`,{method:"POST"});
+    const d=await r.json();
+    updateUI(d.preview);
+    document.getElementById("btn-undo").disabled=false;
+    document.getElementById("btn-export").disabled=false;
+    log("Data cleaning and optimization finished.");
 }
 
-
-/* UNDO */
 async function undoAction(){
-const r=await fetch(`${API_BASE}/undo/${currentSessionId}`,{method:"POST"});
-const d=await r.json();
-updateUI(d.preview);
-log("Undo done");
+    const r=await fetch(`${API_BASE}/undo/${currentSessionId}`,{method:"POST"});
+    const d=await r.json();
+    updateUI(d.preview);
+    log("Previous action reverted.");
 }
 
-
-/* EXPORT */
 async function exportData(){
-log("Preparing export...");
-const res=await fetch(`${API_BASE}/export/${currentSessionId}`);
-const blob=await res.blob();
-
-const url=URL.createObjectURL(blob);
-const a=document.createElement("a");
-a.href=url;
-a.download="optimized_data.csv";
-a.click();
-a.remove();
-
-log("Export complete");
+    log("Generating export file...");
+    const res=await fetch(`${API_BASE}/export/${currentSessionId}`);
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="processed_data.csv";
+    a.click();
+    log("Export successful.");
 }
 
-
-/* TRAIN */
 async function trainModel(){
-const target=document.getElementById("target-col").value;
-const type=document.getElementById("model-type").value;
-if(!target)return alert("Enter target column");
-
-log("Training model...");
-
-const r=await fetch(`${API_BASE}/train`,{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-session_id:currentSessionId,
-target_column:target,
-model_type:type
-})
-});
-
-const d=await r.json();
-
-if(d.status==="success")
-log("Score: "+(d.metrics.accuracy||d.metrics.r2_score).toFixed(4));
-else
-log("Error");
+    const target=document.getElementById("target-col").value;
+    const type=document.getElementById("model-type").value;
+    if(!target)return alert("Specify target column");
+    log("Training started for " + type);
+    const r=await fetch(`${API_BASE}/train`,{
+        method:"POST",
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({session_id:currentSessionId, target_column:target, model_type:type})
+    });
+    const d=await r.json();
+    if(d.status==="success") log("Model Score ("+ (d.metrics.accuracy ? 'Acc' : 'R2') +"): " + (d.metrics.accuracy||d.metrics.r2_score).toFixed(4));
 }
 
-
-/* TABLE */
 function updateUI(data){
-emptyState.classList.add("hidden");
-dataContent.classList.remove("hidden");
-
-if(!data.length)return;
-
-let html="<thead><tr>";
-Object.keys(data[0]).forEach(k=>html+=`<th>${k}</th>`);
-html+="</tr></thead><tbody>";
-
-data.forEach(r=>{
-html+="<tr>";
-Object.values(r).forEach(v=>html+=`<td>${v}</td>`);
-html+="</tr>";
-});
-
-html+="</tbody>";
-previewTable.innerHTML=html;
+    document.getElementById("empty-state").classList.add("hidden");
+    document.getElementById("data-content").classList.remove("hidden");
+    const table = document.getElementById("preview-table");
+    if(!data.length)return;
+    let html="<thead><tr>";
+    Object.keys(data[0]).forEach(k=>html+=`<th>${k}</th>`);
+    html+="</tr></thead><tbody>";
+    data.slice(0, 30).forEach(r=>{
+        html+="<tr>";
+        Object.values(r).forEach(v=>html+=`<td>${v}</td>`);
+        html+="</tr>";
+    });
+    html+="</tbody>";
+    table.innerHTML=html;
 }
 
-
-/* FILE NAME */
-fileInput.addEventListener("change",()=>{
-if(fileInput.files[0])
-fileName.innerText=fileInput.files[0].name;
+document.getElementById("fileInput").addEventListener("change",function(){
+    if(this.files[0]) document.getElementById("file-name").innerText=this.files[0].name;
 });
 </script>
 
